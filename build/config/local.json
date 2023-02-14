@@ -1,3 +1,20 @@
 {
-    "_comment": "YOUR CODE GOES HERE"
+  "name" : "deployment",
+  "type" : "build",
+  "next": [
+    {
+      "run_when_any" : [
+        "release"
+      ],
+      "build" : "publish",
+      "build_in" : "pub",
+      "copy" : [
+        {"/src" : "pub/"}
+      ],
+      "config" : {
+        "clear_build_path" : false,
+        "visibility" : "public"
+      }
+    }
+  ]
 }
