@@ -29,6 +29,10 @@ class deployment(Builder):
 
     # Required Builder method. See that class for details.
     def Build(this):
+        if (not this.depPath or not Path(this.depPath).exists()):
+            depPath = Path(this.rootPath).joinpath("dep")
+            depPath.mkdir(exist_ok=True, parents=True)
+            this.depPath = str(depPath)
         this.MeetDependencies()
         this.Compile()
 
@@ -49,6 +53,8 @@ class deployment(Builder):
             this.executor.DownloadPackage(dep, registerClasses = False, createSubDirectory = True)
             tmpPath.rename(destPath)
 
+        this.dependencies = [f"{dep}.deployment" for dep in this.dependencies]
+
         for dep in this.dependencies:
             depPath = Path(this.depPath).joinpath(f"{dep}")
             if (depPath.exists()):
@@ -64,11 +70,15 @@ class deployment(Builder):
         this.outFile = this.CreateFile(Path(this.output_folder).joinpath(this.output_file))
 
         locs = [f"{this.depPath}/{dep}" for dep in this.dependencies]
+        locs.append([f"{this.depPath}/{dep}" for dep in this.dependencies_as.values()])
         locs.append(this.srcPath)
+        print(locs)
         for loc in locs:
+            if (not loc):
+                continue
             if (loc != this.srcPath):
                 locContextKey = loc.split('/')[-1].split('.')[0]
-                this.outFile.write(f"{{this.executor.PushGlobalContextKey('{locContextKey}')}}\n")
+                this.outFile.write(f"{{this.executor.PushGlobalContextKey('{locContextKey}')}}\n---\n")
             
             for file in glob(f"{loc}/*.yaml"):
                 
@@ -91,6 +101,6 @@ class deployment(Builder):
                 this.outFile.write('\n---\n')
 
             if (loc != this.srcPath):
-                this.outFile.write(f"{{this.executor.PopGlobalContextKey('{locContextKey}')}}\n")
+                this.outFile.write(f"{{this.executor.PopGlobalContextKey('{locContextKey}')}}\n---\n")
         
         this.outFile.close()
